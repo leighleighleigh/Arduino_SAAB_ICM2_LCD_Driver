@@ -1,18 +1,5 @@
-#ifdef __AVR__
-#include <avr/pgmspace.h>
-#elif defined(ESP8266) || defined(ESP32)
-#include <pgmspace.h>
-#else
-#define pgm_read_byte(addr) \
-    (*(const unsigned char *)(addr)) ///< PROGMEM workaround for non-AVR
-#endif
-
 #include <Adafruit_GFX.h>
 #include <SAAB_ICM2.h>
-
-// SOME DEFINES AND STATIC VARIABLES USED INTERNALLY -----------------------
-#define icm2_swap(a, b) \
-    (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b))) ///< No-temp-var swap operation
 
 /*!
     @brief  Constructor for the I2C-interfaced ICM2 display.
@@ -24,7 +11,7 @@
             Pointer to an existing TwoWire instance (e.g. &Wire, the
             microcontroller's primary I2C bus).
 */
-SAAB_ICM2::SAAB_ICM2() : Adafruit_GFX(WIDTH, HEIGHT), buffer(NULL) {}
+SAAB_ICM2::SAAB_ICM2() : Adafruit_GFX(SAAB_ICM2::_width, SAAB_ICM2::_height), buffer(NULL) {}
 
 /*!
     @brief  Destructor for Adafruit_SSD1306 object.
@@ -71,6 +58,17 @@ void SAAB_ICM2::icm2_command(uint8_t c)
     icm2_command1(c);
 }
 
+// Private variable getters
+int8_t SAAB_ICM2::width()
+{
+    return SAAB_ICM2::_width;
+}
+
+int8_t SAAB_ICM2::height()
+{
+    return SAAB_ICM2::_height;
+}
+
 // ALLOCATE & INIT DISPLAY -------------------------------------------------
 
 /*!
@@ -85,7 +83,7 @@ void SAAB_ICM2::icm2_command(uint8_t c)
 bool SAAB_ICM2::begin(void)
 {
     // Allocate dat memory
-    if ((!buffer) && !(buffer = (uint8_t *)malloc(WIDTH * ((HEIGHT + 7) / 8))))
+    if ((!buffer) && !(buffer = (uint8_t *)malloc(SAAB_ICM2::_width * ((SAAB_ICM2::_height + 7) / 8))))
         return false;
 
     // Zero the framebuffer
@@ -129,18 +127,19 @@ bool SAAB_ICM2::begin(void)
 */
 void SAAB_ICM2::drawPixel(int16_t x, int16_t y, uint16_t color)
 {
-    if ((x >= 0) && (x < width()) && (y >= 0) && (y < height()))
+    if ((x >= 0) && (x < SAAB_ICM2::_width) && (y >= 0) && (y < SAAB_ICM2::_height))
     {
+        // Upgraded to do bytewise y-flipping
         switch (color)
         {
         case ICM2_ON:
-            buffer[x + (y / 8) * WIDTH] |= (1 << (y & 7));
+            buffer[x + (y / 8) * SAAB_ICM2::_width] |= (128 >> (y & 7));
             break;
         case ICM2_OFF:
-            buffer[x + (y / 8) * WIDTH] &= ~(1 << (y & 7));
+            buffer[x + (y / 8) * SAAB_ICM2::_width] &= ~(128 >> (y & 7));
             break;
         case ICM2_INVERSE:
-            buffer[x + (y / 8) * WIDTH] ^= (1 << (y & 7));
+            buffer[x + (y / 8) * SAAB_ICM2::_width] ^= (128 >> (y & 7));
             break;
         }
     }
@@ -165,22 +164,16 @@ uint8_t *SAAB_ICM2::getBuffer(void)
 */
 void SAAB_ICM2::clearDisplay(void)
 {
-    memset(buffer, 0, WIDTH * ((HEIGHT + 7) / 8));
+    memset(buffer, 0, SAAB_ICM2::_width * ((SAAB_ICM2::_height + 7) / 8));
 }
 
 // REFRESH DISPLAY ---------------------------------------------------------
 
-uint8_t reverseB(uint8_t b) {
-   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-   return b;
-}
-
 // Write all zeros after an init to clear debris lmao
 void SAAB_ICM2::forceClear(void)
 {   
-    // Note an extra line is being cleared
+    // Note an extra line is being cleared, this removes the "top 1px line"
+    // In the future this should be line zero
     for (int line = 0; line < 9; line++)
     {
         // Set address we are writing too, which is split into "lines" of 8 pixels height.
@@ -222,14 +215,14 @@ void SAAB_ICM2::display(void)
         icm2_commandList((const uint8_t[]){0x00, 0x01, 0x8d}, 3);
 
         // Count of pixels or whatever
-        uint16_t count = (WIDTH * ((HEIGHT + 7) / 8)) / 8;
+        uint16_t count = (SAAB_ICM2::_width * ((SAAB_ICM2::_height + 7) / 8)) / 8;
         // I2C
         Wire.beginTransmission(i2caddr);
         Wire.write((uint8_t)0x40);
         uint8_t bytesOut = 1;
         while (count--)
         {
-            Wire.write(reverseB(*ptr++));
+            Wire.write(*ptr++);
             bytesOut++;
         }
         Wire.endTransmission();

@@ -10,9 +10,6 @@
 #define ICM2_ON 1  ///< Draw 'on' pixels
 #define ICM2_INVERSE 2  ///< Draw 'inverted' pixels
 
-#define WIDTH 106
-#define HEIGHT 64
-
 class SAAB_ICM2 : public Adafruit_GFX
 {
 public:
@@ -28,6 +25,8 @@ public:
   void    forceClear(void);
   void    drawPixel(int16_t x, int16_t y, uint16_t color);
   void    icm2_command(uint8_t c);
+  int8_t  width();
+  int8_t  height();
   uint8_t *getBuffer(void);
 
 private:
@@ -36,6 +35,8 @@ private:
 
   uint8_t     *buffer;
   int8_t       i2caddr = 0x3c;
+  int8_t       _width = 106;
+  int8_t       _height = 64;
 
   uint32_t     wireClk;    // Wire speed for SSD1306 transfers
   uint32_t     restoreClk; // Wire speed following SSD1306 transfers
