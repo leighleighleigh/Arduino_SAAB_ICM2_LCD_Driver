@@ -37,7 +37,7 @@ private:
   uint8_t     *buffer;
   int8_t       i2caddr = 0x3c;
   int8_t       _width = 106;
-  int8_t       _height = 64;
+  int8_t       _height = 65;
 
   uint32_t     wireClk;    // Wire speed for SSD1306 transfers
   uint32_t     restoreClk; // Wire speed following SSD1306 transfers
