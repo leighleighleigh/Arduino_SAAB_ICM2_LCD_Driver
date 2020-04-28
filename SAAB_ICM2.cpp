@@ -11,7 +11,7 @@
             Pointer to an existing TwoWire instance (e.g. &Wire, the
             microcontroller's primary I2C bus).
 */
-SAAB_ICM2::SAAB_ICM2() : Adafruit_GFX(SAAB_ICM2::_width, SAAB_ICM2::_height), buffer(NULL) {}
+SAAB_ICM2::SAAB_ICM2() : Adafruit_GFX(_width, _height), buffer(NULL) {}
 
 /*!
     @brief  Destructor for Adafruit_SSD1306 object.
@@ -61,12 +61,12 @@ void SAAB_ICM2::icm2_command(uint8_t c)
 // Private variable getters
 int8_t SAAB_ICM2::width()
 {
-    return SAAB_ICM2::_width;
+    return _width;
 }
 
 int8_t SAAB_ICM2::height()
 {
-    return SAAB_ICM2::_height;
+    return _height;
 }
 
 // ALLOCATE & INIT DISPLAY -------------------------------------------------
@@ -83,7 +83,7 @@ int8_t SAAB_ICM2::height()
 bool SAAB_ICM2::begin(void)
 {
     // Allocate dat memory
-    if ((!buffer) && !(buffer = (uint8_t *)malloc(SAAB_ICM2::_width * ((SAAB_ICM2::_height + 7) / 8))))
+    if ((!buffer) && !(buffer = (uint8_t *)malloc(_width * ((_height + 7) / 8))))
         return false;
 
     // Zero the framebuffer
@@ -127,22 +127,32 @@ bool SAAB_ICM2::begin(void)
 */
 void SAAB_ICM2::drawPixel(int16_t x, int16_t y, uint16_t color)
 {
-    if ((x >= 0) && (x < SAAB_ICM2::_width) && (y >= 0) && (y < SAAB_ICM2::_height))
+    if ((x >= 0) && (x < _width) && (y >= 0) && (y < _height))
     {
         // Upgraded to do bytewise y-flipping
         switch (color)
         {
         case ICM2_ON:
-            buffer[x + (y / 8) * SAAB_ICM2::_width] |= (128 >> (y & 7));
+            buffer[x + (y / 8) * _width] |= (128 >> (y & 7));
             break;
         case ICM2_OFF:
-            buffer[x + (y / 8) * SAAB_ICM2::_width] &= ~(128 >> (y & 7));
+            buffer[x + (y / 8) * _width] &= ~(128 >> (y & 7));
             break;
         case ICM2_INVERSE:
-            buffer[x + (y / 8) * SAAB_ICM2::_width] ^= (128 >> (y & 7));
+            buffer[x + (y / 8) * _width] ^= (128 >> (y & 7));
             break;
         }
     }
+}
+
+/**************************************************************************/
+/*!
+    @brief  Fill the framebuffer completely with one color
+    @param  color 16-bit 5-6-5 Color to fill with
+*/
+/**************************************************************************/
+void SAAB_ICM2::fillScreen(uint16_t color) {
+    memset(buffer, color ? 0xFF : 0x00, _width * ((_height + 7) / 8));
 }
 
 /*!
@@ -164,7 +174,7 @@ uint8_t *SAAB_ICM2::getBuffer(void)
 */
 void SAAB_ICM2::clearDisplay(void)
 {
-    memset(buffer, 0, SAAB_ICM2::_width * ((SAAB_ICM2::_height + 7) / 8));
+    memset(buffer, 0, _width * ((_height + 7) / 8));
 }
 
 // REFRESH DISPLAY ---------------------------------------------------------
@@ -215,7 +225,7 @@ void SAAB_ICM2::display(void)
         icm2_commandList((const uint8_t[]){0x00, 0x01, 0x8d}, 3);
 
         // Count of pixels or whatever
-        uint16_t count = (SAAB_ICM2::_width * ((SAAB_ICM2::_height + 7) / 8)) / 8;
+        uint16_t count = (_width * ((_height + 7) / 8)) / 8;
         // I2C
         Wire.beginTransmission(i2caddr);
         Wire.write((uint8_t)0x40);

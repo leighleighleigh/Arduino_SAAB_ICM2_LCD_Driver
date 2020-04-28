@@ -24,6 +24,7 @@ public:
   void    clearDisplay(void);
   void    forceClear(void);
   void    drawPixel(int16_t x, int16_t y, uint16_t color);
+  void    fillScreen(uint16_t color);
   void    icm2_command(uint8_t c);
   int8_t  width();
   int8_t  height();
